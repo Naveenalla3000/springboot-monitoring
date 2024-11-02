@@ -1,0 +1,51 @@
+services:
+  prometheus:
+    image: prom/prometheus:v2.44.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+        - ./manifest/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:9.5.2
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    volumes:
+      - ./manifest/monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+
+  application:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: spring-boot-application
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+      - grafana
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/postgres
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_SHOW_SQL=true
+      - SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL=true
+      - SPRING_JPA_PROPERTIES_HIBERNATE_USE_SQL_COMMENTS=true
+      - SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.PostgreSQLDialect
+      - SPRING_JPA_PROPERTIES_HIBERNATE_JDBC_BATCH_SIZE=20
+      - SPRING_JPA_PROPERTIES_HIBERNATE_ORDER_INSERTS=true
+      - SPRING_JPA_PROPERTIES_HIBERNATE_ORDER_UPDATES=true
+      - SPRING_JPA_PROPERTIES_HIBERNATE_BATCH_VERSIONED_DATA=true
+    volumes:
+      - spring-boot-application:/usr/src/**
+
+volumes:
+  spring-boot-application:
+
+
